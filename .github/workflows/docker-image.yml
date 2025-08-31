@@ -22,9 +22,9 @@ jobs:
         password: Iwant2learn
       
     - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag backend:$(date +%s)
+      run: docker build . --file Dockerfile --tag backend:v1
       
 
         
     - name: Docker Push
-      run: docker tag backend:$(date +%s) thejitenderk/backend:$(date +%s)
+      run: docker tag backend:v1 thejitenderk/backend:v1
