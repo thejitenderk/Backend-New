@@ -22,29 +22,24 @@
 
 FROM python:3.9
 
+ENV PYTHONUNBUFFERED=1
+
 WORKDIR /app
 
-COPY . .
+COPY requirements.txt .
 
-# Install dependencies
-RUN apt-get update && apt-get install -y \
-    curl \
-    gnupg2 \
-    unixodbc \
-    unixodbc-dev \
-    apt-transport-https \
-    ca-certificates \
-    software-properties-common
-
-# Add Microsoft package signing key and repository
-RUN curl -sSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.gpg
-
-RUN echo "deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/microsoft.gpg] https://packages.microsoft.com/debian/10/prod stable main" > /etc/apt/sources.list.d/mssql-release.list
-
-# Install the ODBC driver
-RUN apt-get update && ACCEPT_EULA=Y apt-get install -y msodbcsql17
+# Install system dependencies
+RUN apt-get update && \
+    apt-get install -y curl gnupg2 unixodbc unixodbc-dev apt-transport-https ca-certificates && \
+    curl -sSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.gpg && \
+    echo "deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/microsoft.gpg] https://packages.microsoft.com/debian/10/prod stable main" > /etc/apt/sources.list.d/mssql-release.list && \
+    apt-get update && \
+    ACCEPT_EULA=Y apt-get install -y msodbcsql17 && \
+    apt-get clean
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
 
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
