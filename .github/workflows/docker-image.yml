@@ -18,6 +18,14 @@ jobs:
     
     - name: Build the Docker image
       run: docker build -t thejitenderk/backend:v2 .
+
+    - name: Docker Scout
+      id: docker-scout
+      if: ${{ github.event_name == 'pull_request' }}
+      uses: docker/scout-action@v1
+      with:
+        image: thejitenderk/backend:v2
+        only-severities: critical,high
     
     - uses: docker/login-action@v3.5.0
       with:
