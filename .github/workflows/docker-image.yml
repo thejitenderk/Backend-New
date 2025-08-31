@@ -17,7 +17,7 @@ jobs:
         version: v24.0.9
     
     - name: Build the Docker image
-      run: docker build -t thejitenderk/backend:v1 .
+      run: docker build -t thejitenderk/backend:v2 .
     
     - uses: docker/login-action@v3.5.0
       with:
@@ -26,4 +26,4 @@ jobs:
 
         
     - name: Docker Push
-      run: docker push thejitenderk/backend:v1
+      run: docker push thejitenderk/backend:v2
