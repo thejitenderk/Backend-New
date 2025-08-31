@@ -26,24 +26,25 @@ WORKDIR /app
 
 COPY . .
 
-# Install dependencies and required tools
+# Install dependencies
 RUN apt-get update && apt-get install -y \
-    unixodbc \
-    unixodbc-dev \
     curl \
     gnupg2 \
-    apt-transport-https
+    unixodbc \
+    unixodbc-dev \
+    apt-transport-https \
+    ca-certificates \
+    software-properties-common
 
-# Add Microsoft GPG key and repository
-RUN curl -sSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg && \
-    install -o root -g root -m 644 microsoft.gpg /usr/share/keyrings/ && \
-    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/debian/10/prod stable main" > /etc/apt/sources.list.d/mssql-release.list && \
-    rm microsoft.gpg
+# Add Microsoft package signing key and repository
+RUN curl -sSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.gpg
 
-# Install MS ODBC Driver
+RUN echo "deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/microsoft.gpg] https://packages.microsoft.com/debian/10/prod stable main" > /etc/apt/sources.list.d/mssql-release.list
+
+# Install the ODBC driver
 RUN apt-get update && ACCEPT_EULA=Y apt-get install -y msodbcsql17
 
-# Install Python packages
+# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
