@@ -76,12 +76,15 @@
 
 
 # Use official Python slim image as base
-FROM python:3.9-slim
+# Use Python 3.9 based on Debian Bullseye (stable & compatible)
 
-# Set working directory
+
+FROM python:3.9-bullseye
+
+# Set working directory inside container
 WORKDIR /app
 
-# Install required tools and dependencies
+# Install required system dependencies in one RUN command
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     gnupg \
@@ -90,10 +93,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     unixodbc \
     unixodbc-dev \
     software-properties-common \
-    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Validate Debian version and setup Microsoft repo and drivers
+# Add Microsoft package repository and install MS ODBC Driver + tools
 RUN bash -c '\
     DEB_VERSION=$(grep VERSION_ID /etc/os-release | cut -d "\"" -f 2 | cut -d "." -f 1); \
     if ! [[ "8 9 10 11 12" == *"$DEB_VERSION"* ]]; then \
@@ -108,14 +110,14 @@ RUN bash -c '\
     echo "export PATH=\$PATH:/opt/mssql-tools/bin" >> /etc/profile.d/mssql.sh; \
 '
 
-# Copy application files (assuming requirements.txt and code in current directory)
+# Copy the current directory contents into the container at /app
 COPY . .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Expose port (if using FastAPI or similar)
+# Expose port 8000 (if you're using FastAPI or similar)
 EXPOSE 8000
 
-# Default command to run app (adjust if needed)
+# Run the app (change if your entrypoint is different)
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
