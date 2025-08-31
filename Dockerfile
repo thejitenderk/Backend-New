@@ -20,40 +20,56 @@
 # CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
 
 
-FROM python:3.9-slim
+FROM ubuntu:20.04
 
+# Avoid interactive tzdata prompt
 ENV DEBIAN_FRONTEND=noninteractive
-ENV ACCEPT_EULA=Y
 
-WORKDIR /app
-COPY . .
-
-# Install only the required dependencies (NO software-properties-common)
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
     curl \
-    gnupg \
-    apt-transport-https \
+    gnupg2 \
     ca-certificates \
+    apt-transport-https \
+    software-properties-common \
+    lsb-release \
+    sudo \
     unixodbc \
-    unixodbc-dev && \
-    rm -rf /var/lib/apt/lists/*
+    unixodbc-dev \
+    python3.9 \
+    python3.9-venv \
+    python3-pip \
+    build-essential
 
-# Add the Microsoft package repo & GPG key for Debian 10 (works with slim)
-RUN curl -sSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.gpg && \
-    echo "deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/microsoft.gpg] https://packages.microsoft.com/debian/10/prod stable main" > /etc/apt/sources.list.d/mssql-release.list
+# Verify supported Ubuntu version
+RUN VERSION_ID=$(grep VERSION_ID /etc/os-release | cut -d '"' -f 2) && \
+    case "$VERSION_ID" in \
+        14.04|16.04|18.04|20.04|22.04) echo "Ubuntu $VERSION_ID is supported." ;; \
+        *) echo "Ubuntu $VERSION_ID is not supported." && exit 1 ;; \
+    esac
 
 # Install Microsoft ODBC Driver
+RUN VERSION_ID=$(grep VERSION_ID /etc/os-release | cut -d '"' -f 2) && \
+    curl -sSL -O https://packages.microsoft.com/config/ubuntu/$VERSION_ID/packages-microsoft-prod.deb && \
+    dpkg -i packages-microsoft-prod.deb && \
+    rm packages-microsoft-prod.deb
+
 RUN apt-get update && \
-    ACCEPT_EULA=Y apt-get install -y msodbcsql17 && \
-    ACCEPT_EULA=Y apt-get install -y mssql-tools && \
+    ACCEPT_EULA=Y apt-get install -y msodbcsql17 mssql-tools && \
     echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bashrc && \
-    echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.profile && \
-    rm -rf /var/lib/apt/lists/*
+    echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.profile
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Set working dir
+WORKDIR /app
 
+# Copy source code
+COPY . .
+
+# Install Python requirements
+RUN pip3 install --no-cache-dir -r requirements.txt
+
+# Expose port
 EXPOSE 8000
 
+# Run the app
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
-
